@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 const DATA_DIR = join(__dirname, '..', 'data');
 const DATA_FILE = join(DATA_DIR, 'workouts.json');
 
-const INITIAL_DATA = { workouts: [] };
+const INITIAL_DATA = { workouts: [], personalRecords: {} };
 
 // ── 内部辅助函数 ────────────────────────────────────────────────────────────
 
@@ -132,9 +132,36 @@ export async function addExercise(workoutId, { name, weight, sets, reps, note = 
   };
 
   data.workouts[workoutIndex].exercises.push(newExercise);
+
+  // 兼容旧数据：确保 personalRecords 字段存在
+  if (!data.personalRecords) data.personalRecords = {};
+
+  // 更新个人最佳
+  const exerciseName = name.trim();
+  const currentPR = data.personalRecords[exerciseName];
+  if (!currentPR || Number(weight) > currentPR.weight) {
+    data.personalRecords[exerciseName] = {
+      weight: Number(weight),
+      sets: Number(sets),
+      reps: Number(reps),
+      date: data.workouts[workoutIndex].date,
+      workoutId,
+      isNew: true,  // 标记为本次新创建
+    };
+  } else {
+    // 清除旧的 isNew 标记
+    data.personalRecords[exerciseName].isNew = false;
+  }
+
   await writeData(data);
 
-  return data.workouts[workoutIndex];
+  const returnWorkout = { ...data.workouts[workoutIndex] };
+  returnWorkout._prInfo = {
+    exerciseName,
+    isNew: data.personalRecords[exerciseName]?.isNew ?? false,
+    prWeight: data.personalRecords[exerciseName]?.weight,
+  };
+  return returnWorkout;
 }
 
 /**
@@ -225,4 +252,43 @@ export async function deleteExercise(workoutId, exerciseId) {
   await writeData(data);
 
   return data.workouts[workoutIndex];
+}
+
+/**
+ * 获取所有个人最佳记录
+ * @returns {Promise<Object>} { exerciseName: { weight, sets, reps, date, workoutId } }
+ */
+export async function getPersonalRecords() {
+  const data = await readData();
+  // 清除 isNew 标记后返回
+  const records = {};
+  for (const [name, pr] of Object.entries(data.personalRecords || {})) {
+    records[name] = { ...pr, isNew: undefined };
+  }
+  return records;
+}
+
+/**
+ * 获取某个动作在所有训练中的历史记录
+ * @param {string} exerciseName
+ * @returns {Promise<Array>} [{date, weight, sets, reps, workoutName, workoutId}]
+ */
+export async function getExerciseHistory(exerciseName) {
+  const data = await readData();
+  const history = [];
+  for (const workout of data.workouts) {
+    for (const ex of (workout.exercises || [])) {
+      if (ex.name === exerciseName) {
+        history.push({
+          date: workout.date,
+          weight: ex.weight,
+          sets: ex.sets,
+          reps: ex.reps,
+          workoutName: workout.name,
+          workoutId: workout.id,
+        });
+      }
+    }
+  }
+  return history.sort((a, b) => a.date.localeCompare(b.date));
 }

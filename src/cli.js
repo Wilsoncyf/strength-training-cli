@@ -9,13 +9,17 @@ import {
   removeWorkout,
   calculateVolume,
 } from './logic.js';
+import { handleProgressMenu } from './screens/progress.js';
+import { handleTemplatesMenu } from './screens/templates.js';
+import { handleStatsMenu } from './screens/stats.js';
+import { handleEditMenu } from './screens/edit.js';
 
 // ─── 工具函数 ────────────────────────────────────────────────────────────────
 
 function printBanner() {
   console.log('');
   console.log(chalk.bgCyan.bold.white('                                          '));
-  console.log(chalk.bgCyan.bold.white('     💪  力量训练记录工具  CLI  v1.0.0    '));
+  console.log(chalk.bgCyan.bold.white('     💪  力量训练记录工具  CLI  v2.0.0    '));
   console.log(chalk.bgCyan.bold.white('                                          '));
   console.log('');
 }
@@ -341,7 +345,13 @@ export async function startCLI() {
     { name: '📋 查看所有训练',       value: 'list' },
     { name: '🔍 查看训练详情',       value: 'detail' },
     { name: '✏️  继续添加动作',       value: 'add' },
+    { name: '🖊️  编辑 / 删除动作',   value: 'edit' },
     { name: '🗑️  删除训练',           value: 'delete' },
+    { name: new inquirer.Separator('── 进阶功能 ──'), value: null },
+    { name: '🏆 个人最佳 & 进度',    value: 'progress' },
+    { name: '📁 训练模板',           value: 'templates' },
+    { name: '📊 数据统计看板',       value: 'stats' },
+    { name: new inquirer.Separator(), value: null },
     { name: '🚪 退出',               value: 'exit' },
   ];
 
@@ -383,8 +393,32 @@ export async function startCLI() {
         );
         break;
 
+      case 'edit':
+        await handleEditMenu().catch((err) =>
+          console.log(chalk.red(`错误：${err.message}`))
+        );
+        break;
+
       case 'delete':
         await handleDeleteWorkout().catch((err) =>
+          console.log(chalk.red(`错误：${err.message}`))
+        );
+        break;
+
+      case 'progress':
+        await handleProgressMenu().catch((err) =>
+          console.log(chalk.red(`错误：${err.message}`))
+        );
+        break;
+
+      case 'templates':
+        await handleTemplatesMenu().catch((err) =>
+          console.log(chalk.red(`错误：${err.message}`))
+        );
+        break;
+
+      case 'stats':
+        await handleStatsMenu().catch((err) =>
           console.log(chalk.red(`错误：${err.message}`))
         );
         break;

@@ -117,8 +117,7 @@ export async function listWorkouts() {
  */
 export async function removeWorkout(workoutId) {
   try {
-    await deleteWorkout(workoutId);
-    return true;
+    return await deleteWorkout(workoutId);
   } catch {
     return false;
   }
